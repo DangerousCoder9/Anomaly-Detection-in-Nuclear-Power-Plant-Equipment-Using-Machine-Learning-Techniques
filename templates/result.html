@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Detection Results — Nuclear Anomaly Detector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #060a10;
+      --panel:    #0b1120;
+      --border:   #1a2a44;
+      --accent:   #00d4ff;
+      --accent2:  #ff4d6d;
+      --green:    #00ff88;
+      --yellow:   #ffd166;
+      --text:     #c8d8f0;
+      --muted:    #4a6080;
+      --font-mono:'Share Tech Mono', monospace;
+      --font-main:'Exo 2', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      min-height: 100vh;
+      padding: 2rem;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+
+    .page { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+      animation: fadeDown 0.5s ease both;
+    }
+
+    .header-left h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 40%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-left p {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
+    .back-btn {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      text-decoration: none;
+      border: 1px solid rgba(0,212,255,0.3);
+      padding: 0.5rem 1.1rem;
+      border-radius: 4px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .back-btn:hover { background: var(--accent); color: var(--bg); }
+
+    /* Status banner */
+    .status-banner {
+      border-radius: 8px;
+      padding: 1.2rem 1.6rem;
+      margin-bottom: 1.8rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-weight: 600;
+      font-size: 1.05rem;
+      animation: fadeUp 0.5s ease 0.1s both;
+    }
+
+    .status-banner.safe {
+      background: rgba(0,255,136,0.06);
+      border: 1px solid rgba(0,255,136,0.25);
+      color: var(--green);
+    }
+
+    .status-banner.danger {
+      background: rgba(255,77,109,0.06);
+      border: 1px solid rgba(255,77,109,0.3);
+      color: var(--accent2);
+    }
+
+    .status-icon { font-size: 1.5rem; }
+
+    /* Stat grid */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.8rem;
+      animation: fadeUp 0.5s ease 0.2s both;
+    }
+
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+
+    .stat-card.blue::before  { background: var(--accent); }
+    .stat-card.red::before   { background: var(--accent2); }
+    .stat-card.green::before { background: var(--green); }
+    .stat-card.yellow::before{ background: var(--yellow); }
+
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-size: 1.9rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .stat-card.blue  .stat-value { color: var(--accent); }
+    .stat-card.red   .stat-value { color: var(--accent2); }
+    .stat-card.green .stat-value { color: var(--green); }
+    .stat-card.yellow .stat-value{ color: var(--yellow); }
+
+    .stat-sub {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    /* Two column layout */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.8rem;
+      animation: fadeUp 0.5s ease 0.3s both;
+    }
+
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* Panel card */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .panel h3 {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.2rem;
+      padding-bottom: 0.7rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Error stats */
+    .error-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 0.88rem;
+    }
+    .error-row:last-child { border-bottom: none; }
+    .error-row .key { color: var(--muted); font-family: var(--font-mono); font-size: 0.8rem; }
+    .error-row .val { font-family: var(--font-mono); color: var(--text); font-weight: 600; }
+
+    /* Metrics grid */
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .metric-row:last-child { border-bottom: none; }
+    .metric-name { font-size: 0.88rem; color: var(--text); }
+    .metric-val  { font-family: var(--font-mono); font-size: 0.9rem; color: var(--green); font-weight: 600; }
+
+    /* Progress bar */
+    .progress-wrap { margin-bottom: 1.5rem; }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      margin-bottom: 0.4rem;
+    }
+    .progress-label span:first-child { color: var(--muted); font-family: var(--font-mono); font-size: 0.72rem; }
+    .progress-label span:last-child  { color: var(--text); font-family: var(--font-mono); font-size: 0.72rem; }
+    .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+
+    /* Confusion matrix */
+    .cm-grid {
+      display: grid;
+      grid-template-columns: auto 1fr 1fr;
+      gap: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    .cm-head { color: var(--muted); text-align: center; padding: 0.3rem; font-size: 0.68rem; }
+    .cm-side { color: var(--muted); display: flex; align-items: center; padding-right: 0.5rem; font-size: 0.68rem; }
+    .cm-cell {
+      border-radius: 4px;
+      padding: 0.9rem 0.5rem;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    .cm-tn { background: rgba(0,255,136,0.1);  color: var(--green); }
+    .cm-fp { background: rgba(255,77,109,0.1); color: var(--accent2); }
+    .cm-fn { background: rgba(255,77,109,0.1); color: var(--accent2); }
+    .cm-tp { background: rgba(0,212,255,0.1);  color: var(--accent); }
+    .cm-sub { font-size: 0.6rem; display: block; opacity: 0.6; margin-top: 2px; }
+
+    /* Results table */
+    .table-section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 1.8rem;
+      animation: fadeUp 0.5s ease 0.4s both;
+    }
+
+    .table-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .table-header h3 {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .table-header span {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .table-scroll { max-height: 380px; overflow-y: auto; }
+    .table-scroll::-webkit-scrollbar { width: 4px; }
+    .table-scroll::-webkit-scrollbar-track { background: var(--panel); }
+    .table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: rgba(0,212,255,0.05);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0.7rem 1.2rem;
+      text-align: left;
+      position: sticky; top: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.15s; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    tbody td {
+      padding: 0.65rem 1.2rem;
+      font-size: 0.83rem;
+    }
+
+    tbody td:first-child { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+    tbody td:nth-child(2) { font-family: var(--font-mono); font-size: 0.78rem; }
+
+    .tag {
+      display: inline-block;
+      padding: 0.2rem 0.7rem;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+    .tag-normal  { background: rgba(0,255,136,0.1); color: var(--green); }
+    .tag-anomaly { background: rgba(255,77,109,0.12); color: var(--accent2); }
+
+    @keyframes fadeDown { from { opacity:0; transform:translateY(-15px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeUp   { from { opacity:0; transform:translateY(15px);  } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>Detection Results</h1>
+      <p>Conv1D-LSTM Autoencoder · Threshold: {{ results.threshold }}</p>
+    </div>
+    <a href="/" class="back-btn">← New Analysis</a>
+  </div>
+
+  <!-- Status Banner -->
+  {% if results.anomalies_detected == 0 %}
+  <div class="status-banner safe">
+    <span class="status-icon">✅</span>
+    <div>All Clear — No anomalies detected in the uploaded sensor data.</div>
+  </div>
+  {% else %}
+  <div class="status-banner danger">
+    <span class="status-icon">⚠️</span>
+    <div>
+      {{ results.anomalies_detected }} anomal{{ 'y' if results.anomalies_detected == 1 else 'ies' }} detected
+      ({{ results.anomaly_percentage }}% of windows flagged as abnormal).
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Stat Cards -->
+  <div class="stat-grid">
+    <div class="stat-card blue">
+      <div class="stat-label">Total Windows</div>
+      <div class="stat-value">{{ results.total_windows }}</div>
+      <div class="stat-sub">window_size = 50</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Normal</div>
+      <div class="stat-value">{{ results.normal_detected }}</div>
+      <div class="stat-sub">{{ "%.1f"|format(100 - results.anomaly_percentage) }}% of windows</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Anomalies</div>
+      <div class="stat-value">{{ results.anomalies_detected }}</div>
+      <div class="stat-sub">{{ results.anomaly_percentage }}% of windows</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-label">Mean Error</div>
+      <div class="stat-value" style="font-size:1.3rem;">{{ results.mean_error }}</div>
+      <div class="stat-sub">threshold: {{ results.threshold }}</div>
+    </div>
+  </div>
+
+  <!-- Progress + Error Stats / Metrics -->
+  <div class="two-col">
+
+    <!-- Left: Error breakdown OR Anomaly ratio -->
+    <div class="panel">
+      <h3>Reconstruction Errors</h3>
+
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span>Anomaly Rate</span>
+          <span>{{ results.anomaly_percentage }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill"
+               style="width:{{ results.anomaly_percentage }}%;
+                      background: {% if results.anomaly_percentage > 20 %}var(--accent2){% elif results.anomaly_percentage > 5 %}var(--yellow){% else %}var(--green){% endif %};">
+          </div>
+        </div>
+      </div>
+
+      <div class="error-row"><span class="key">Min Error</span><span class="val">{{ results.min_error }}</span></div>
+      <div class="error-row"><span class="key">Mean Error</span><span class="val">{{ results.mean_error }}</span></div>
+      <div class="error-row"><span class="key">Max Error</span><span class="val">{{ results.max_error }}</span></div>
+      <div class="error-row"><span class="key">Threshold</span><span class="val">{{ results.threshold }}</span></div>
+    </div>
+
+    <!-- Right: Metrics (if available) OR Confusion Matrix placeholder -->
+    {% if results.has_metrics %}
+    <div class="panel">
+      <h3>Evaluation Metrics</h3>
+      <div class="metric-row"><span class="metric-name">Accuracy</span> <span class="metric-val">{{ "%.4f"|format(results.metrics.accuracy) }}</span></div>
+      <div class="metric-row"><span class="metric-name">Precision</span><span class="metric-val">{{ "%.4f"|format(results.metrics.precision) }}</span></div>
+      <div class="metric-row"><span class="metric-name">Recall</span>   <span class="metric-val">{{ "%.4f"|format(results.metrics.recall) }}</span></div>
+      <div class="metric-row"><span class="metric-name">F1-Score</span> <span class="metric-val">{{ "%.4f"|format(results.metrics.f1_score) }}</span></div>
+
+      <div style="margin-top:1.2rem;">
+        <div class="cm-grid">
+          <div class="cm-head"></div>
+          <div class="cm-head">Pred Normal</div>
+          <div class="cm-head">Pred Anomaly</div>
+          <div class="cm-side">Actual Normal</div>
+          <div class="cm-cell cm-tn">{{ results.metrics.tn }}<span class="cm-sub">TN</span></div>
+          <div class="cm-cell cm-fp">{{ results.metrics.fp }}<span class="cm-sub">FP</span></div>
+          <div class="cm-side">Actual Anomaly</div>
+          <div class="cm-cell cm-fn">{{ results.metrics.fn }}<span class="cm-sub">FN</span></div>
+          <div class="cm-cell cm-tp">{{ results.metrics.tp }}<span class="cm-sub">TP</span></div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="panel">
+      <h3>Evaluation Metrics</h3>
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:80%; gap:0.8rem; padding-top: 2rem;">
+        <div style="font-size:2rem; opacity:0.3;">📊</div>
+        <p style="font-size:0.82rem; color:var(--muted); text-align:center; line-height:1.6;">
+          No ground truth labels found.<br>
+          Upload a file with a <code style="font-family:var(--font-mono); color:var(--text);">Label</code> column to see accuracy, precision, recall and F1-score.
+        </p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Per-row Results Table -->
+  <div class="table-section">
+    <div class="table-header">
+      <h3>Per-Window Predictions</h3>
+      <span>{{ results.total_windows }} windows</span>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Timestamp</th>
+            <th>Reconstruction Error</th>
+            <th>Prediction</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in results.row_results %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.timestamp }}</td>
+            <td>{{ row.error }}</td>
+            <td>
+              {% if row.label == 'Anomaly' %}
+                <span class="tag tag-anomaly">⚠ Anomaly</span>
+              {% else %}
+                <span class="tag tag-normal">✓ Normal</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nuclear Anomaly Detector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #060a10;
+      --panel:     #0b1120;
+      --border:    #1a2a44;
+      --accent:    #00d4ff;
+      --accent2:   #ff4d6d;
+      --green:     #00ff88;
+      --text:      #c8d8f0;
+      --muted:     #4a6080;
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-main: 'Exo 2', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      overflow-x: hidden;
+    }
+
+    /* Animated grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glow orb */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(0,212,255,0.07) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 640px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      animation: fadeDown 0.7s ease both;
+    }
+
+    .badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      border: 1px solid rgba(0,212,255,0.3);
+      padding: 0.3rem 0.9rem;
+      border-radius: 2px;
+      margin-bottom: 1.2rem;
+      text-transform: uppercase;
+    }
+
+    .badge::before { content: '⬡ '; }
+
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 30%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.6rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.95rem;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+    }
+
+    /* Card */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2.5rem;
+      animation: fadeUp 0.7s ease 0.15s both;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    /* Error */
+    .error-box {
+      background: rgba(255,77,109,0.08);
+      border: 1px solid rgba(255,77,109,0.35);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--accent2);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+    }
+
+    .error-box::before { content: '✕'; font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(0,212,255,0.04);
+    }
+
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      display: block;
+      filter: drop-shadow(0 0 12px rgba(0,212,255,0.4));
+    }
+
+    .upload-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.4rem;
+    }
+
+    .upload-hint {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+
+    .file-name {
+      margin-top: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--green);
+      display: none;
+    }
+
+    /* Format info */
+    .format-info {
+      margin-top: 1.5rem;
+      background: rgba(0,212,255,0.04);
+      border: 1px solid rgba(0,212,255,0.12);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+    }
+
+    .format-info h4 {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
+
+    .format-info p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .format-info code {
+      font-family: var(--font-mono);
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+      padding: 0.1em 0.4em;
+      border-radius: 3px;
+      font-size: 0.8rem;
+    }
+
+    /* Submit button */
+    .btn {
+      display: block;
+      width: 100%;
+      margin-top: 1.8rem;
+      padding: 1rem;
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+      box-shadow: 0 0 24px rgba(0,212,255,0.3);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Loading state */
+    .btn.loading::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 2px;
+      background: var(--bg);
+      animation: loadBar 1.5s ease-in-out infinite;
+    }
+
+    @keyframes loadBar {
+      0%   { width: 0%; left: 0; }
+      50%  { width: 70%; left: 15%; }
+      100% { width: 0%; left: 100%; }
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">Conv1D-LSTM Autoencoder</div>
+      <h1>Nuclear Anomaly<br>Detection System</h1>
+      <p class="subtitle">Upload sensor data · Get instant anomaly predictions</p>
+    </div>
+
+    <div class="card">
+      {% if error %}
+      <div class="error-box">{{ error }}</div>
+      {% endif %}
+
+      <form action="/detect" method="POST" enctype="multipart/form-data" id="uploadForm">
+        <div class="upload-zone" id="dropZone">
+          <input type="file" name="file" id="fileInput" accept=".csv" required />
+          <span class="upload-icon">📡</span>
+          <div class="upload-title">Drop CSV file here or click to browse</div>
+          <div class="upload-hint">Accepts .csv files only</div>
+          <div class="file-name" id="fileName"></div>
+        </div>
+
+        <div class="format-info">
+          <h4>Expected Format</h4>
+          <p>
+            <strong>Without labels</strong> (prediction only):<br>
+            <code>Timestamp, 8 sensor columns</code>
+          </p>
+          <br>
+          <p>
+            <strong>With labels</strong> (prediction + evaluation metrics):<br>
+            <code>Timestamp, 8 sensor columns, Label</code><br>
+            Label values: <code>Normal</code> / <code>Attack</code> / <code>Anomaly</code>
+          </p>
+          <br>
+          <p style="color:#4a6080;">Minimum <code>51</code> rows required to form sliding windows.</p>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">
+          ⬡ &nbsp; Run Anomaly Detection
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const dropZone   = document.getElementById('dropZone');
+    const fileInput  = document.getElementById('fileInput');
+    const fileName   = document.getElementById('fileName');
+    const submitBtn  = document.getElementById('submitBtn');
+    const uploadForm = document.getElementById('uploadForm');
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) {
+        fileName.textContent = '✓ ' + fileInput.files[0].name;
+        fileName.style.display = 'block';
+      }
+    });
+
+    ['dragover','dragenter'].forEach(e => dropZone.addEventListener(e, ev => {
+      ev.preventDefault(); dropZone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(e => dropZone.addEventListener(e, ev => {
+      ev.preventDefault(); dropZone.classList.remove('dragover');
+    }));
+    dropZone.addEventListener('drop', ev => {
+      const f = ev.dataTransfer.files[0];
+      if (f) { fileInput.files = ev.dataTransfer.files; fileName.textContent = '✓ ' + f.name; fileName.style.display = 'block'; }
+    });
+
+    uploadForm.addEventListener('submit', () => {
+      submitBtn.textContent = '⬡   Analysing...';
+      submitBtn.classList.add('loading');
+      submitBtn.disabled = true;
+    });
+  </script>
+</body>
+</html>
